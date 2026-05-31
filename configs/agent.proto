@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package cockpit;
+
+// 预留给 Go 代码生成的包路径，必须与你的 go.mod 对应
+option go_package = "github.com/kbzce745/DriveOS-LLM-Agent/backend-go/rpc;rpc";
+
+// 定义车载智能座舱的核心服务
+service CockpitService {
+    // 核心接口：接收用户意图，返回控制指令与 RAG 文本
+    rpc ProcessIntent (IntentRequest) returns (IntentResponse);
+}
+
+// 请求体：车机发送给大模型算法端的数据
+message IntentRequest {
+    string query = 1;             // 用户输入的语音识别文本（例如：“我有点热，放首周杰伦的歌”）
+    VehicleStatus status = 2;     // 当前车辆的实时状态（Agent 需要结合状态做上下文决策）
+}
+
+// 车辆实时状态结构体
+message VehicleStatus {
+    int32 ac_temperature = 1;     // 当前空调温度
+    bool is_window_open = 2;      // 车窗是否打开
+    string current_media = 3;     // 当前正在播放的媒体/歌曲
+}
+
+// 响应体：算法端返回给车机的数据
+message IntentResponse {
+    string reply_text = 1;        // 大模型或 RAG 生成的拟人化语音播报文本
+    string control_action = 2;    // 核心：大模型生成的结构化车控命令 (JSON 字符串，例如：{"action": "SET_AC", "value": 22})
+}

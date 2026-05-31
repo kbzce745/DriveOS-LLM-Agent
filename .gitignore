@@ -1,3 +1,8 @@
+# Python
+.venv/
+env/
+venv/
+# 深度学习与大模型相关限制
 data/
 *.bin
 *.pth
@@ -6,14 +11,14 @@ data/
 .env
 __pycache__/
 *.pyc
-
+# Go 编译产物
 /backend-go/backend-go
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
-
+# 系统与 IDE 配置
 .DS_Store
 .vscode/
 .idea/
