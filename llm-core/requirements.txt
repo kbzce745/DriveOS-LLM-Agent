@@ -1,0 +1,14 @@
+# RPC 通信底层架构
+grpcio
+grpcio-tools
+protobuf
+
+# 大模型引擎 SDK
+google-genai
+
+# 安全与配置管理
+python-dotenv
+
+# HMI 前端交互界面与网络请求
+gradio
+requests
