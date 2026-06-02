@@ -1,6 +1,7 @@
 [English](README_en.md) | [简体中文](README.md)
 ---
 # DriveOS-LLM-Agent: Smart Cockpit LLM Microservices Architecture
+**AI Engine Component:** This gateway relies on a custom fine-tuned Qwen2.5-7B model for intent extraction. For the core AI engine, fine-tuning scripts, and vLLM deployment details, please visit: [DriveOS-LLM-Engine](https://github.com/kbzce745/DriveOS-LLM-Engine)
 ## Project Overview
 This project is an application validation of Large Language Models (LLMs) in a simulated smart vehicle cockpit. Addressing common pain points in automotive LLM deployment—such as intent divergence, lack of execution boundaries, and response latency—this project adopts a **heterogeneous microservices architecture**. It accurately infers user intents via LLMs and strictly outputs structured control streams (JSON) executable by underlying hardware.
 
@@ -64,5 +65,5 @@ Upon successful launch, visit `http://127.0.0.1:7860` in your browser to experie
 
 ## Roadmap
 * [x] **Phase 1:** Complete Go + Python microservices infrastructure, integrating Gemini API for a multi-intent control loop.
-* [ ] **Phase 2:** Eliminate cloud API dependency, introduce open-source models (e.g., Qwen) via LLaMA-Factory, and conduct domain-specific SFT fine-tuning using LoRA.
+* [x] **Phase 2:** Eliminate cloud API dependency, introduce open-source models (e.g., Qwen) via LLaMA-Factory, and conduct domain-specific SFT fine-tuning using LoRA.
 * [ ] **Phase 3:** Introduce RAG (Retrieval-Augmented Generation) technology to parse massive Car User Manual PDFs, enabling precise local Q&A for complex vehicular faults.

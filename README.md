@@ -1,7 +1,7 @@
 [English](README_en.md) | [简体中文](README.md)
 ---
 # DriveOS-LLM-Agent: 智能座舱大模型微服务架构验证项目
-
+**AI 引擎组件：**该网关依赖于一个经过微调的自定义 Qwen2.5-7B 模型来实现意图提取。有关核心 AI 引擎、微调脚本以及 vLLM 部署的详细信息，请访问：[DriveOS-LLM-Engine](https://github.com/kbzce745/DriveOS-LLM-Engine)
 ## 项目简介
 本项目是一个模拟真实智能汽车座舱（Smart Cockpit）的大模型应用落地验证项目。针对车载大模型落地中存在的“意图发散”、“缺乏执行边界”以及“响应延迟”等痛点，本项目采用了**异构微服务架构**，通过大模型精确推断用户意图，并严格输出底层硬件可执行的结构化控制流（JSON）。
 
@@ -65,5 +65,5 @@ python mock-hmi/app.py
 
 ## Roadmap (演进规划)
 * [x] **Phase 1:** 完成 Go + Python 微服务基建，接入 Gemini API 实现多意图控制闭环。
-* [ ] **Phase 2:** 摆脱云端 API 依赖，基于 LLaMA-Factory 引入开源模型（如 Qwen），并使用 LoRA 技术进行 SFT 垂直领域微调。
+* [x] **Phase 2:** 摆脱云端 API 依赖，基于 LLaMA-Factory 引入开源模型（如 Qwen），并使用 LoRA 技术进行 SFT 垂直领域微调。
 * [ ] **Phase 3:** 引入 RAG（检索增强生成）技术，解析百万字级的《汽车用户手册》PDF，实现车载复杂故障的精准本地问答。
