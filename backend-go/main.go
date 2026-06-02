@@ -1,19 +1,11 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
-	"time"
-
-	pb "github.com/kbzce745/DriveOS-LLM-Agent/backend-go/rpc"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
-
-// 定义全局的 gRPC 客户端
-var grpcClient pb.CockpitServiceClient
 
 // 定义前端发来的数据结构
 type HMIRequest struct {
@@ -29,48 +21,40 @@ func handleChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2. 构造超时上下文，呼叫底层 AI
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
+	// 2. 构造车辆实时状态 (在真实工程中，这里会通过 CAN 总线 SDK 实时读取)
+	// 将状态格式化为大模型 System Prompt 容易理解的字符串形态
+	vehicleState := fmt.Sprintf("- 空调温度: %d\n- 车窗是否打开: %v\n- 播放中的音乐: %s", 24, false, "无")
 
-	// 为了 Demo 演示，车辆状态先写死。实际工程中这里会去读取 CAN 总线的数据
-	grpcReq := &pb.IntentRequest{
-		Query: req.Query,
-		Status: &pb.VehicleStatus{
-			AcTemperature: 24,
-			IsWindowOpen:  false,
-			CurrentMedia:  "无",
-		},
-	}
+	log.Printf("[网关接收] 指令: %s", req.Query)
 
-	// 3. 阻塞等待 Python/Gemini 推理结果
-	res, err := grpcClient.ProcessIntent(ctx, grpcReq)
+	// 3. 呼叫我们刚才手写的神经突触 (HTTP 直连 vLLM 引擎，自带 JSON Schema 强校验)
+	res, err := AskCockpitBrain(vehicleState, req.Query)
 	if err != nil {
+		log.Printf("[网关异常] 大模型调用失败: %v", err)
 		http.Error(w, "AI Gateway Error: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// 4. 将 AI 的结果打包成 JSON 返回给前端大屏
+	// 4. 将 AI 受控吐出的完美结构体，直接序列化返回给前端大屏
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"reply":   res.GetReplyText(),
-		"control": res.GetControlAction(),
+	// 注意这里：res.Control 已经是强类型数组，直接返回，前端解析绝不会报错
+	json.NewEncoder(w).Encode(map[string]any{
+		"reply":   res.Reply,
+		"control": res.Control,
 	})
+
+	log.Printf("[网关响应] 成功下发 %d 条硬件控制指令", len(res.Control))
 }
 
 func main() {
-	// 启动时立刻连接 Python AI 服务端
-	conn, err := grpc.Dial("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatalf("无法连接到 AI 大脑: %v", err)
-	}
-	defer conn.Close()
-	
-	grpcClient = pb.NewCockpitServiceClient(conn)
-
 	// 挂载 HTTP 路由
 	http.HandleFunc("/api/chat", handleChat)
 
-	log.Println(" [Go 车机中间件] HTTP 网关已启动在 8080 端口，监听 HMI 交互...")
+	log.Println("=====================================================")
+	log.Println("  [DriveOS 网关] 异构微服务已启动")
+	log.Println("  [监听端口] :8080 (等待 HMI 大屏接入...)")
+	log.Println("  [算力路由] 指向 vLLM 引擎 (带 Structured Outputs 锁)")
+	log.Println("=====================================================")
+
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
