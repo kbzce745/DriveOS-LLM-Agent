@@ -1,30 +1,31 @@
 [English](README_en.md) | [简体中文](README.md)
 ---
 # DriveOS-LLM-Agent: Smart Cockpit LLM Microservices Architecture
-**AI Engine Component:** This gateway relies on a custom fine-tuned Qwen2.5-7B model for intent extraction. For the core AI engine, fine-tuning scripts, and vLLM deployment details, please visit: [DriveOS-LLM-Engine](https://github.com/kbzce745/DriveOS-LLM-Engine)
+
+**AI Engine Component:** This gateway relies on a custom fine-tuned Qwen2.5-7B model for intent extraction and multi-task orchestration. For the core AI engine, fine-tuning scripts, and vLLM deployment details, please visit: [DriveOS-LLM-Engine](https://github.com/kbzce745/DriveOS-LLM-Engine)
+
 ## Project Overview
-This project is an application validation of Large Language Models (LLMs) in a simulated smart vehicle cockpit. Addressing common pain points in automotive LLM deployment—such as intent divergence, lack of execution boundaries, and response latency—this project adopts a **heterogeneous microservices architecture**. It accurately infers user intents via LLMs and strictly outputs structured control streams (JSON) executable by underlying hardware.
+This project is an application validation of Large Language Models (LLMs) in a simulated smart vehicle cockpit. Addressing critical production bottlenecks in automotive LLM deployment—such as mixed-intent divergence, lack of execution boundaries, and sequential single-threaded response latency—this project adopts a **distributed heterogeneous microservices architecture**. It anatomizes composite user prompts into decoupled task streams within milliseconds via a concurrent multi-agent routing topology, outputting both high-purity knowledge responses and structured execution streams (JSON) executable by underlying hardware.
 
 ## System Architecture Design
-Deviating from the amateur approach of monolithic Python scripts, this system strictly follows industrial automotive middleware standards, employing a decoupled architecture: **Go (High-Concurrency Gateway) + Python (AI Inference Engine)**. The services communicate via **gRPC (Protocol Buffers)** for low-latency binary data transmission.
+Deviating from the amateur approach of monolithic Python scripts, this system strictly follows industrial automotive middleware standards, employing a decoupled architecture: **Go (High-Concurrency Gateway) + Python (Distributed Inference & RAG Microservices)** to achieve low-latency, resilient service communication.
 
 * **HMI Front-end (Mock UI):** A smart cockpit visual interaction screen built with Gradio, simulating driver voice/text input.
-* **Middleware Gateway (Go API Gateway):** A daemon process written in Go. It handles HTTP requests from the HMI, encapsulates real-time vehicle status (simulated CAN data), and forwards them to the AI brain via gRPC.
-* **AI Inference Layer (Python gRPC Server):** Listens to gateway requests, constructs strict System Prompts, and invokes cloud-based LLM engines for intent parsing and multi-task orchestration.
-* **LLM Engine Layer (Gemini GenAI):** Currently integrated with the Gemini engine, utilizing its robust JSON Mode capabilities to ensure 100% format compliance for underlying C++ hardware drivers.
+* **Middleware Gateway (Go API Gateway):** A daemon process written in Go. It handles high-concurrency HTTP requests from the HMI and encapsulates real-time vehicle status. Core to this layer is the **Fan-out/Fan-in Concurrent Matrix**, leveraging `sync.WaitGroup` and `sync.Mutex` to dispatch composite instructions into parallel threads.
+* **AI Inference Layer (vLLM Inference Server):** Powered by a background vLLM daemon serving the locally fine-tuned `driveos-cockpit-llm`. It outputs hardware-driving control packets within milliseconds via strict JSON Schema layout enforcement.
+* **Knowledge Augmentation Layer (Python FastAPI RAG Server):** An isolated RAG microservice driving the BGE-Large-ZH embedding model and local FAISS vector storage, enabling semantic chunking, retrieval, and contextual stitching over massive car manuals.
 
 ## Core Features
-* **Ultra-Fast Cross-Language Communication:** Utilizes gRPC over traditional RESTful APIs, leveraging Protobuf to eliminate serialization overhead between microservices.
-* **Multi-Intent State Machine Constraints:** Introduces a strict Action Whitelist to prevent the LLM from generating dangerous unauthorized commands (e.g., controlling brakes/airbags), ensuring driving safety boundaries.
+* **Multi-Intent Concurrent Orchestration (Fan-out/Fan-in):** Eliminates the zero-sum selection failure between hardware manipulation and manual lookup under composite driver instructions, running downstream paths in parallel without data loss.
+* **Edge-Ready Localized Deployment:** Eliminates public API reliance and data privacy hazards by completing the entire compute, retrieval, and orchestration lifecycle within local or cloud containers.
 * **Context-Aware Dynamic Decision Making:** Model inference heavily relies on the current vehicle state (e.g., window status, cabin temperature), enabling highly personalized and dynamic anthropomorphic responses.
-* **Schema Drift Defense Mechanism:** Forces the LLM to output a standardized JSON array structure, perfectly compatible with the parsing logic of downstream strongly-typed languages.
+* **Schema Drift Defense Mechanism:** Strongly-typed data contract binding forces the LLM to conform to standardized JSON array structures, ensuring absolute compatibility with downstream hardware parsing boundaries.
 
 ## Tech Stack
-* **Backend Gateway:** Go 1.20+, `net/http`
-* **AI Engine:** Python 3.10+, `google-genai` SDK
-* **RPC Communication:** gRPC, Protocol Buffers (`protoc-gen-go`, `grpcio-tools`)
-* **Front-end UI:** Gradio
-* **Configuration Management:** `python-dotenv` (Strict separation of credentials and code)
+* **Backend Gateway:** Go 1.20+, native `net/http` and `sync` concurrency primitives
+* **AI Inference Core:** Python 3.10+, `vllm==0.4.2` (Production-stable基线), `pydantic==2.7.4`
+* **Vector Retrieval Infrastructure:** FastAPI, Uvicorn, FAISS, HuggingFace Embeddings (`BAAI/bge-large-zh-v1.5`)
+* **Configuration:** Strict environment variable isolation mechanics
 
 ## Quick Start
 
@@ -34,36 +35,30 @@ git clone [https://github.com/kbzce745/DriveOS-LLM-Agent.git](https://github.com
 cd DriveOS-LLM-Agent
 ```
 
-### 2. Environment Configuration
-Create a `.env` file in the `llm-core` directory and configure your LLM API key:
-```env
-GEMINI_API_KEY="AIzaSy_YOUR_REAL_KEY"
-```
+### 2. Environment Configuration & Backend Verification
+Before launching the local gateway, ensure that the decoupled backend compute cluster is fully operational and listening within the remote container environment:
 
-### 3. Launch the Cluster (Requires three terminals)
+vLLM Inference Core: Listening on 127.0.0.1:8000 (serving base LLM requests)
+
+RAG Microservice: Listening on 127.0.0.1:8001 (serving the FAISS manual query pipeline)
+
+### 3. Launch the Cluster
 **Terminal 1: Start the Python AI Brain**
-```bash
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r llm-core/requirements.txt
-python llm-core/server.py
-```
-
-**Terminal 2: Start the Go Concurrency Gateway**
 ```bash
 cd backend-go
 go mod tidy
-go run main.go
+go run main.go llm_client.go
 ```
 
-**Terminal 3: Start the HMI Screen**
+**Terminal 2: Start the HMI Screen**
 ```bash
-.\.venv\Scripts\Activate.ps1
 python mock-hmi/app.py
 ```
-Upon successful launch, visit `http://127.0.0.1:7860` in your browser to experience the cockpit assistant.
+
+Upon successful launch, visit http://127.0.0.1:7860 in your browser to experience the concurrent, multi-intent routed cockpit assistant.
 
 ## Roadmap
 * [x] **Phase 1:** Complete Go + Python microservices infrastructure, integrating Gemini API for a multi-intent control loop.
 * [x] **Phase 2:** Eliminate cloud API dependency, introduce open-source models (e.g., Qwen) via LLaMA-Factory, and conduct domain-specific SFT fine-tuning using LoRA.
-* [ ] **Phase 3:** Introduce RAG (Retrieval-Augmented Generation) technology to parse massive Car User Manual PDFs, enabling precise local Q&A for complex vehicular faults.
+* [x] **Phase 3:** Introduce RAG (Retrieval-Augmented Generation) technology to parse massive Car User Manual PDFs, enabling precise local Q&A for complex vehicular faults.
+* [x] **Phase 4:** Refactor the Go gateway into a distributed agent topology driven by concurrent graph routing, scaling to handle composite driver inputs flawlessly.
