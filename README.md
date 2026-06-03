@@ -60,4 +60,4 @@ python mock-hmi/app.py
 * [x] **Phase 1:** 完成 Go + Python 微服务基建，接入 Gemini API 实现多意图控制闭环。
 * [x] **Phase 2:** 摆脱云端 API 依赖，基于 LLaMA-Factory 引入开源模型（如 Qwen），并使用 LoRA 技术进行 SFT 垂直领域微调。
 * [x] **Phase 3:** 引入 RAG（检索增强生成）技术，解析百万字级的《汽车用户手册》PDF，实现车载复杂故障的精准本地问答。
-* [x]  **Phase 3:** 重构 Go 网关为分布式智能体架构，引入多路并发图谱路由（Concurrent Routing），完美吞吐驾驶员复合复杂指令。
+* [x] **Phase4:** 重构 Go 网关为分布式智能体架构，引入多路并发图谱路由（Concurrent Routing），完美吞吐驾驶员复合复杂指令。
